@@ -31,6 +31,8 @@ target/
 *.class
 .gradle/
 *.jar
+# 工作区内的 Maven 本地仓库（避免写系统 ~/.m2，体积大不入库）
+.m2-repo/
 
 # ---- 构建产物与日志 ----
 *.log

@@ -25,13 +25,20 @@ import re
 import sys
 
 LAYERS = ("controller", "application", "domain", "infrastructure")
+# 允许的依赖方向（含同层内部引用：一个层可以引用自己的类）
 ALLOWED = {
-    "controller": {"application", "domain", "common"},
-    "application": {"domain", "common"},
-    "domain": {"common"},
-    "infrastructure": {"domain", "common"},
+    "controller": {"controller", "application", "domain", "common"},
+    "application": {"application", "domain", "common"},
+    "domain": {"domain", "common"},
+    "infrastructure": {"infrastructure", "domain", "common"},
 }
-# 这些包出现在 import 里即视为对相应层的依赖
+# 第三方包前缀：这些 import 不属于本项目分层，不参与层间依赖判定
+FRAMEWORK_PREFIXES = (
+    "java.", "javax.", "jakarta.", "org.springframework", "com.baomidou",
+    "org.apache.ibatis", "org.slf4j", "com.fasterxml", "lombok.", "org.junit",
+    "org.mockito", "org.hibernate", "com.zaxxer", "org.aspectj", "io.jsonwebtoken",
+)
+# 这些包出现在 import 里即视为对相应层的依赖（仅在未指定 base-package 时兜底使用）
 LAYER_ALIASES = {
     "repository": "infrastructure",
     "dao": "infrastructure",
@@ -56,10 +63,23 @@ def layer_of(path):
 
 
 def target_layer(import_path, base_package):
-    """从 import 全名推断被依赖的层。"""
+    """从 import 全名推断被依赖的层。
+
+    关键点：只有**本项目包内**的 import 才参与层间依赖判定。
+    否则 ``org.springframework.stereotype.Service`` 会被末段 "service" 误判为
+    application 层依赖，产生误报（v1 的真实缺陷，已修复）。
+    """
     name = import_path
-    if base_package and name.startswith(base_package + "."):
+
+    if base_package:
+        if not name.startswith(base_package + "."):
+            return None          # 框架/第三方依赖，交给 FORBIDDEN_IMPORT 单独判断
         name = name[len(base_package) + 1:]
+    else:
+        # 未指定基础包时无法判断归属，只能用前缀黑名单兜底
+        if name.startswith(FRAMEWORK_PREFIXES):
+            return None
+
     segments = name.split(".")
     if not segments:
         return None
