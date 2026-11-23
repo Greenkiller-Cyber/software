@@ -1,0 +1,60 @@
+# 03-源码/docker-compose.yml
+# 用途：一键拉起依赖服务。定稿前需替换为真实配置并实测 `docker compose up` 可用。
+# 注意：密码等敏感值从 .env 读取，禁止明文写死。
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: "${PROJECT_NAME:-app}-mysql"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:?请在 .env 中设置 DB_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${DB_NAME:-app}"
+      MYSQL_USER: "${DB_USER:-app}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}"
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: "${PROJECT_NAME:-app}-redis"
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # 异步/消息场景（对应任务书 C3）需要时启用
+  # rabbitmq:
+  #   image: rabbitmq:3-management
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: "${MQ_USER:-app}"
+  #     RABBITMQ_DEFAULT_PASS: "${MQ_PASSWORD:?请在 .env 中设置 MQ_PASSWORD}"
+
+  # 后端与前端服务待实现后补充，示例：
+  # backend:
+  #   build: ./backend
+  #   depends_on:
+  #     mysql: { condition: service_healthy }
+  #     redis: { condition: service_healthy }
+  #   env_file: .env
+  #   ports:
+  #     - "8080:8080"
+
+volumes:
+  mysql-data:
+  redis-data:

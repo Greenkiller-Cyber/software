@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: 【项目名】API
+  description: |
+    接口契约先行（contract-first）。新增接口先在此登记，再写实现。
+    任务书要求：覆盖 ≥80% 的对外接口。
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080
+    description: 本地开发环境
+
+tags:
+  - name: auth
+    description: 认证与授权
+  - name: 【模块一】
+    description: 【待填写】
+
+paths:
+  # 示例（定稿前替换为真实接口）
+  /api/v1/health:
+    get:
+      tags: [system]
+      summary: 健康检查
+      operationId: healthCheck
+      responses:
+        "200":
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Result:
+      type: object
+      description: 统一响应包装
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: ok
+        data:
+          nullable: true
+
+    PageResult:
+      type: object
+      properties:
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        size:
+          type: integer
+        records:
+          type: array
+          items:
+            type: object
+
+security:
+  - bearerAuth: []
